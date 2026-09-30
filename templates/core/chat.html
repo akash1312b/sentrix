@@ -1,0 +1,124 @@
+{% extends "core/base.html" %}
+
+{% block title %}Shop AI Assistant — Sentrix{% endblock %}
+{% block view_title %}Shop AI Assistant{% endblock %}
+{% block view_subtitle %}Your intelligent digital helper for checking stock, recording sales, and drafting orders{% endblock %}
+
+{% block content %}
+<section id="view-chat" class="view-section active">
+
+    <div class="chat-page-layout">
+        <!-- Main Chat Box -->
+        <div class="glass-panel chat-main-panel">
+            <div class="chat-header">
+                <div class="chat-header-info">
+                    <div class="chat-avatar-header">🤖</div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <h3 style="font-size: 1.1rem; font-weight: 800; margin: 0;">Sentrix AI Shop Assistant</h3>
+                            <span class="pill pill-success" id="chat-provider-badge">● Ready (Active)</span>
+                        </div>
+                        <p class="panel-sub" style="margin: 2px 0 0 0;">Ask questions in plain English or Hinglish to check stock, record sales, or place orders</p>
+                    </div>
+                </div>
+                <div class="chat-header-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="App.clearChat()" title="Reset conversation">
+                        🗑️ Clear Chat
+                    </button>
+                </div>
+            </div>
+
+            <!-- Suggestion Prompt Chips -->
+            <div class="chat-prompt-chips">
+                <span class="chips-label">Quick Suggestions:</span>
+                <button type="button" class="prompt-chip" onclick="App.sendQuickPrompt('How much stock of Tata Salt left?')">
+                    📦 Tata Salt Stock?
+                </button>
+                <button type="button" class="prompt-chip" onclick="App.sendQuickPrompt('What items are low on stock?')">
+                    ⚠️ Low Stock Items
+                </button>
+                <button type="button" class="prompt-chip" onclick="App.sendQuickPrompt('Sold 2 Maggi')">
+                    📉 Sold 2 Maggi
+                </button>
+                <button type="button" class="prompt-chip" onclick="App.sendQuickPrompt('Add 10 Parle-G')">
+                    📈 Add 10 Parle-G
+                </button>
+                <button type="button" class="prompt-chip" onclick="App.sendQuickPrompt('When will Tata Salt run out?')">
+                    ⏳ Stockout Forecast
+                </button>
+                <button type="button" class="prompt-chip" onclick="App.sendQuickPrompt('Order 25 Tata Salt')">
+                    📋 Order 25 Tata Salt
+                </button>
+            </div>
+
+            <!-- Messages Stream -->
+            <div class="chat-messages-stream" id="chat-fullscreen-stream">
+                <div class="chat-row assistant">
+                    <div class="chat-avatar bot-av">🤖</div>
+                    <div class="chat-bubble-body">
+                        <p><strong>Hello! I am your Sentrix AI store assistant for {{ current_shop.name|default:"your store" }}.</strong></p>
+                        <p>I can help you manage your shop instantly through simple messages. Try typing:</p>
+                        <ul>
+                            <li><em>"How much stock of Maggi?"</em></li>
+                            <li><em>"Sold 5 Tata Salt"</em> (instantly updates inventory)</li>
+                            <li><em>"Add 20 Parle-G"</em> (records restock)</li>
+                            <li><em>"Which items are low in stock?"</em></li>
+                            <li><em>"Order 30 units of Tata Salt"</em></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="chat-row assistant" id="chat-fullscreen-typing" style="display: none;">
+                    <div class="chat-avatar bot-av">🤖</div>
+                    <div class="chat-bubble-body typing-indicator">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Input Bar -->
+            <form id="chat-fullscreen-form" class="chat-input-container" onsubmit="event.preventDefault(); App.handleChatSubmit();">
+                <input 
+                    type="text" 
+                    id="chat-fullscreen-input" 
+                    class="chat-text-input" 
+                    placeholder="Type your question or instruction (e.g., 'Sold 3 Maggi', 'Check stock of Parle-G')..." 
+                    autocomplete="off"
+                    required
+                >
+                <button type="submit" class="btn btn-primary btn-chat-send" id="chat-send-btn">
+                    <span>Send</span> ➔
+                </button>
+            </form>
+        </div>
+
+        <!-- Right Side Helper Tips & Store Snapshot -->
+        <div class="chat-sidebar-panel">
+            <div class="glass-panel" style="margin-bottom: 16px;">
+                <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">💡 How to use the AI Helper</h4>
+                <ul class="chat-help-list">
+                    <li><strong>No manual form filling:</strong> Just type sales or restock details like you talk.</li>
+                    <li><strong>Real-time inventory:</strong> Stock numbers are updated live in your database.</li>
+                    <li><strong>Free or Groq API:</strong> Works out of the box with zero setup, or link a Groq API key in your <code>.env</code> file for Llama-3 AI power.</li>
+                </ul>
+            </div>
+
+            <div class="glass-panel">
+                <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">⚡ Quick Store Shortcuts</h4>
+                <div class="chat-shortcuts-grid">
+                    <a href="{% url 'core:pos' %}" class="btn btn-secondary btn-sm" style="width: 100%; justify-content: flex-start;">
+                        💳 Open Billing Counter (POS)
+                    </a>
+                    <a href="{% url 'core:products' %}" class="btn btn-secondary btn-sm" style="width: 100%; justify-content: flex-start;">
+                        📦 View Product Catalog
+                    </a>
+                    <a href="{% url 'core:orders' %}" class="btn btn-secondary btn-sm" style="width: 100%; justify-content: flex-start;">
+                        📋 View Supplier Orders
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</section>
+{% endblock %}

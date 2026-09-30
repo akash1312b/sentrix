@@ -1,0 +1,102 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Products & Stock — Sentrix{% endblock %}
+{% block view_title %}Products & Stock{% endblock %}
+{% block view_subtitle %}Check quantities, edit prices, and add new shop items{% endblock %}
+
+{% block content %}
+<section id="view-inventory" class="view-section active">
+    
+    <!-- Controls Bar -->
+    <div class="glass-panel control-toolbar">
+        <div class="search-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="product-search-input" class="search-input" placeholder="Search by item name, SKU, or barcode..." autocomplete="off">
+            <button class="clear-search-btn" id="clear-search-btn" onclick="App.clearSearch()" style="display: none;">✕</button>
+        </div>
+
+        <div class="toolbar-actions">
+            <select id="category-filter-select" class="custom-select" onchange="App.applyFilters()">
+                <option value="">All Categories</option>
+            </select>
+
+            <select id="status-filter-select" class="custom-select" onchange="App.applyFilters()">
+                <option value="all">All Items</option>
+                <option value="healthy">Good Stock</option>
+                <option value="low">Low Stock</option>
+                <option value="out">Out of Stock</option>
+            </select>
+
+            <button class="btn btn-secondary btn-sm" onclick="App.exportCatalogCSV()" title="Download Excel/CSV Spreadsheet">
+                📥 Download Spreadsheet
+            </button>
+
+            <button class="btn btn-secondary btn-sm" onclick="App.openImportModal()" title="Upload CSV Spreadsheet">
+                📁 Upload a Product List
+            </button>
+
+            <button class="btn btn-primary btn-sm btn-glow" onclick="App.openAddProductModal()">
+                + Add New Product
+            </button>
+        </div>
+    </div>
+
+    <!-- Empty Shop State (Displayed ONLY when the shop has 0 products) -->
+    <div id="empty-shop-container" class="glass-panel" style="display: none; text-align: center; padding: 48px 24px;">
+        <div style="font-size: 3.2rem; margin-bottom: 12px;">🏪</div>
+        <h3 style="font-size: 1.35rem; font-weight: 800; color: var(--text-main); margin-bottom: 8px;">Your shop is empty</h3>
+        <p style="font-size: 0.95rem; color: var(--text-muted); max-width: 480px; margin: 0 auto 24px; line-height: 1.5;">
+            Your shop is empty. Try it out with sample items, or add your own below.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 12px; align-items: center; max-width: 320px; margin: 0 auto;">
+            <button type="button" id="btn-show-sample-items" class="btn btn-primary" style="width: 100%; min-height: 48px; font-size: 1rem; font-weight: 700;" onclick="App.loadSampleItems()">
+                Show Me Sample Items
+            </button>
+            <button type="button" class="btn btn-secondary" style="width: 100%; min-height: 44px; font-size: 0.92rem; font-weight: 600;" onclick="App.openAddProductModal()">
+                + Add Your Own Product
+            </button>
+            <button type="button" class="btn btn-secondary" style="width: 100%; min-height: 44px; font-size: 0.92rem; font-weight: 600;" onclick="App.openImportModal()">
+                📁 Upload a Product List
+            </button>
+        </div>
+    </div>
+
+    <!-- Catalog Table Panel -->
+    <div class="glass-panel" id="catalog-table-card">
+        <div class="panel-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <h3>Product List</h3>
+                <span class="pill pill-info" id="inventory-count-pill">0 items</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <a href="javascript:void(0)" id="remove-sample-link" class="auth-link" onclick="App.removeSampleItems()" style="display: none; font-size: 0.82rem; font-weight: 700; text-decoration: underline;">
+                    Remove sample items
+                </a>
+                <div style="font-size: 0.8rem; color: var(--text-dim);">
+                    Click ⚡ Adjust to quickly add stock or record a sale
+                </div>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th onclick="App.sortProducts('name')" class="sortable-th">Product & SKU ⬍</th>
+                        <th onclick="App.sortProducts('category')" class="sortable-th">Category ⬍</th>
+                        <th onclick="App.sortProducts('quantity')" class="sortable-th">Quantity in Shop ⬍</th>
+                        <th onclick="App.sortProducts('sale_price')" class="sortable-th">Selling Price ⬍</th>
+                        <th onclick="App.sortProducts('cost_price')" class="sortable-th">Cost Price ⬍</th>
+                        <th>Stock Status</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="inventory-table-body">
+                    <tr><td colspan="7" class="table-loader">Loading products...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</section>
+{% endblock %}

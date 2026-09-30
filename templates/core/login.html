@@ -1,0 +1,244 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Log In — Sentrix</title>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=2.1">
+
+    <script>
+        // If already logged in, redirect directly to dashboard
+        if (localStorage.getItem('access_token')) {
+            window.location.href = '/';
+        }
+    </script>
+</head>
+<body class="auth-page">
+
+    <div class="auth-card">
+        <!-- Brand Header -->
+        <a href="/login/" class="auth-brand-wrap">
+            <div class="auth-brand-badge">⚡</div>
+            <div class="auth-brand-name">Sentrix</div>
+        </a>
+
+        <div class="auth-header">
+            <h1 class="auth-title">Welcome back</h1>
+            <p class="auth-subtitle">Log in to manage your shop</p>
+        </div>
+
+        <!-- Session Alert Box -->
+        <div id="auth-alert" class="auth-alert" style="display: none;"></div>
+
+        <form id="login-form" novalidate>
+            <!-- Username -->
+            <div class="auth-form-group">
+                <label for="login-username" class="auth-label">
+                    Username <span class="required-star">*</span>
+                </label>
+                <input 
+                    type="text" 
+                    id="login-username" 
+                    class="auth-input" 
+                    placeholder="Enter your username" 
+                    required 
+                    autocomplete="username"
+                    autocapitalize="none"
+                    spellcheck="false"
+                >
+                <div id="error-username" class="auth-field-error"></div>
+            </div>
+
+            <!-- Password -->
+            <div class="auth-form-group">
+                <label for="login-password" class="auth-label">
+                    Password <span class="required-star">*</span>
+                </label>
+                <input 
+                    type="password" 
+                    id="login-password" 
+                    class="auth-input" 
+                    placeholder="Enter your password" 
+                    required 
+                    autocomplete="current-password"
+                >
+                <label class="auth-toggle-row">
+                    <input type="checkbox" id="toggle-password" class="auth-toggle-checkbox">
+                    <span class="auth-toggle-label">Show password</span>
+                </label>
+                <div id="error-password" class="auth-field-error"></div>
+            </div>
+
+            <!-- General Form Error -->
+            <div id="general-error" class="auth-field-error" style="margin-top: 10px;"></div>
+
+            <!-- Submit Button -->
+            <button type="submit" id="login-submit-btn" class="auth-btn">
+                Log In
+            </button>
+        </form>
+
+        <!-- Footer -->
+        <div class="auth-footer">
+            <p class="auth-footer-text">
+                New here? <a href="/signup/" class="auth-link">Create your shop account</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('login-form');
+            const usernameInput = document.getElementById('login-username');
+            const passwordInput = document.getElementById('login-password');
+            const togglePassword = document.getElementById('toggle-password');
+            const submitBtn = document.getElementById('login-submit-btn');
+            const alertBox = document.getElementById('auth-alert');
+            const generalError = document.getElementById('general-error');
+            const errorUsername = document.getElementById('error-username');
+            const errorPassword = document.getElementById('error-password');
+
+            // Check for session ended message
+            const sessionMsg = sessionStorage.getItem('auth_message');
+            if (sessionMsg) {
+                alertBox.className = 'auth-alert auth-alert-error';
+                alertBox.textContent = sessionMsg;
+                alertBox.style.display = 'flex';
+                sessionStorage.removeItem('auth_message');
+            } else {
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('session_expired') === '1') {
+                    alertBox.className = 'auth-alert auth-alert-error';
+                    alertBox.textContent = 'Your session ended. Please log in again.';
+                    alertBox.style.display = 'flex';
+                }
+            }
+
+            // Show/Hide password toggle
+            if (togglePassword) {
+                togglePassword.addEventListener('change', () => {
+                    passwordInput.type = togglePassword.checked ? 'text' : 'password';
+                });
+            }
+
+            function clearErrors() {
+                generalError.textContent = '';
+                generalError.classList.remove('active');
+                errorUsername.textContent = '';
+                errorUsername.classList.remove('active');
+                errorPassword.textContent = '';
+                errorPassword.classList.remove('active');
+                usernameInput.classList.remove('has-error');
+                passwordInput.classList.remove('has-error');
+            }
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                clearErrors();
+
+                const username = usernameInput.value.trim();
+                const password = passwordInput.value;
+
+                let hasClientError = false;
+                if (!username) {
+                    errorUsername.textContent = 'Please check this field and try again.';
+                    errorUsername.classList.add('active');
+                    usernameInput.classList.add('has-error');
+                    hasClientError = true;
+                }
+                if (!password) {
+                    errorPassword.textContent = 'Please check this field and try again.';
+                    errorPassword.classList.add('active');
+                    passwordInput.classList.add('has-error');
+                    hasClientError = true;
+                }
+
+                if (hasClientError) return;
+
+                // Disable button and show loading state
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Please wait...';
+
+                try {
+                    const response = await fetch('/api/v1/auth/login/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ username, password }),
+                    });
+
+                    if (response.status === 401) {
+                        generalError.textContent = 'Username or password is not correct. Please try again.';
+                        generalError.classList.add('active');
+                        usernameInput.classList.add('has-error');
+                        passwordInput.classList.add('has-error');
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Log In';
+                        return;
+                    }
+
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => null);
+                        generalError.textContent = (errData && errData.detail) 
+                            ? errData.detail 
+                            : 'Username or password is not correct. Please try again.';
+                        generalError.classList.add('active');
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Log In';
+                        return;
+                    }
+
+                    const tokenData = await response.json();
+                    const accessToken = tokenData.access;
+                    const refreshToken = tokenData.refresh;
+
+                    // Save tokens
+                    localStorage.setItem('access_token', accessToken);
+                    if (refreshToken) {
+                        localStorage.setItem('refresh_token', refreshToken);
+                    }
+
+                    // Fetch user profile & shop info
+                    try {
+                        const meResponse = await fetch('/api/v1/auth/me/', {
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`,
+                            },
+                        });
+
+                        if (meResponse.ok) {
+                            const userData = await meResponse.json();
+                            if (userData.memberships && userData.memberships.length > 0 && userData.memberships[0].shop) {
+                                const shop = userData.memberships[0].shop;
+                                localStorage.setItem('shop_id', shop.id);
+                                localStorage.setItem('shop_name', shop.name);
+                            }
+                        }
+                    } catch (meErr) {
+                        console.error('Error fetching user profile:', meErr);
+                    }
+
+                    // Redirect to dashboard
+                    window.location.href = '/';
+
+                } catch (err) {
+                    console.error('Login network error:', err);
+                    generalError.textContent = "Can't connect right now. Please check your internet and try again.";
+                    generalError.classList.add('active');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Log In';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

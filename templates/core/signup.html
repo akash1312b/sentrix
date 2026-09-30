@@ -1,0 +1,408 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Create Your Shop Account — Sentrix</title>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=2.1">
+
+    <script>
+        // If already logged in, redirect directly to dashboard
+        if (localStorage.getItem('access_token')) {
+            window.location.href = '/';
+        }
+    </script>
+</head>
+<body class="auth-page">
+
+    <div class="auth-card" style="max-width: 460px;">
+        <!-- Brand Header -->
+        <a href="/login/" class="auth-brand-wrap">
+            <div class="auth-brand-badge">⚡</div>
+            <div class="auth-brand-name">Sentrix</div>
+        </a>
+
+        <div class="auth-header">
+            <h1 class="auth-title">Create your shop account</h1>
+            <p class="auth-subtitle">Set up your smart inventory in less than a minute</p>
+        </div>
+
+        <form id="signup-form" novalidate>
+            <!-- 1. Shop name -->
+            <div class="auth-form-group">
+                <label for="signup-shop-name" class="auth-label">
+                    Shop name <span class="required-star">*</span>
+                </label>
+                <input 
+                    type="text" 
+                    id="signup-shop-name" 
+                    class="auth-input" 
+                    placeholder="Enter your shop name" 
+                    required 
+                    autocomplete="organization"
+                >
+                <p class="auth-helper">For example: Sharma General Store</p>
+                <div id="error-shop_name" class="auth-field-error"></div>
+            </div>
+
+            <!-- 2. Your first name -->
+            <div class="auth-form-group">
+                <label for="signup-first-name" class="auth-label">
+                    Your first name <span class="required-star">*</span>
+                </label>
+                <input 
+                    type="text" 
+                    id="signup-first-name" 
+                    class="auth-input" 
+                    placeholder="Enter your first name" 
+                    required 
+                    autocomplete="given-name"
+                >
+                <div id="error-first_name" class="auth-field-error"></div>
+            </div>
+
+            <!-- 3. Your last name (optional) -->
+            <div class="auth-form-group">
+                <label for="signup-last-name" class="auth-label">
+                    Your last name <span style="font-weight: 400; color: var(--text-dim); font-size: 0.8rem;">(optional)</span>
+                </label>
+                <input 
+                    type="text" 
+                    id="signup-last-name" 
+                    class="auth-input" 
+                    placeholder="Enter your last name" 
+                    autocomplete="family-name"
+                >
+                <div id="error-last_name" class="auth-field-error"></div>
+            </div>
+
+            <!-- 4. Email -->
+            <div class="auth-form-group">
+                <label for="signup-email" class="auth-label">
+                    Email <span class="required-star">*</span>
+                </label>
+                <input 
+                    type="email" 
+                    id="signup-email" 
+                    class="auth-input" 
+                    placeholder="Enter your email address" 
+                    required 
+                    autocomplete="email"
+                    autocapitalize="none"
+                    spellcheck="false"
+                >
+                <div id="error-email" class="auth-field-error"></div>
+            </div>
+
+            <!-- 5. Username -->
+            <div class="auth-form-group">
+                <label for="signup-username" class="auth-label">
+                    Username <span class="required-star">*</span>
+                </label>
+                <input 
+                    type="text" 
+                    id="signup-username" 
+                    class="auth-input" 
+                    placeholder="Choose a username" 
+                    required 
+                    autocomplete="username"
+                    autocapitalize="none"
+                    spellcheck="false"
+                >
+                <p class="auth-helper">You will use this to log in</p>
+                <div id="error-username" class="auth-field-error"></div>
+            </div>
+
+            <!-- 6. Password -->
+            <div class="auth-form-group">
+                <label for="signup-password" class="auth-label">
+                    Password <span class="required-star">*</span>
+                </label>
+                <input 
+                    type="password" 
+                    id="signup-password" 
+                    class="auth-input" 
+                    placeholder="Create a secure password" 
+                    required 
+                    autocomplete="new-password"
+                >
+                <label class="auth-toggle-row">
+                    <input type="checkbox" id="toggle-signup-password" class="auth-toggle-checkbox">
+                    <span class="auth-toggle-label">Show password</span>
+                </label>
+                <p class="auth-helper">At least 8 characters. Don't use only numbers.</p>
+                <div id="error-password" class="auth-field-error"></div>
+            </div>
+
+            <!-- General Form Error -->
+            <div id="signup-general-error" class="auth-field-error" style="margin-top: 10px;"></div>
+
+            <!-- Submit Button -->
+            <button type="submit" id="signup-submit-btn" class="auth-btn">
+                Create My Shop
+            </button>
+        </form>
+
+        <!-- Footer -->
+        <div class="auth-footer">
+            <p class="auth-footer-text">
+                Already have an account? <a href="/login/" class="auth-link">Log in</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('signup-form');
+            const shopNameInput = document.getElementById('signup-shop-name');
+            const firstNameInput = document.getElementById('signup-first-name');
+            const lastNameInput = document.getElementById('signup-last-name');
+            const emailInput = document.getElementById('signup-email');
+            const usernameInput = document.getElementById('signup-username');
+            const passwordInput = document.getElementById('signup-password');
+            const togglePassword = document.getElementById('toggle-signup-password');
+            const submitBtn = document.getElementById('signup-submit-btn');
+            const generalError = document.getElementById('signup-general-error');
+
+            const fieldErrors = {
+                shop_name: document.getElementById('error-shop_name'),
+                first_name: document.getElementById('error-first_name'),
+                last_name: document.getElementById('error-last_name'),
+                email: document.getElementById('error-email'),
+                username: document.getElementById('error-username'),
+                password: document.getElementById('error-password'),
+            };
+
+            const inputs = {
+                shop_name: shopNameInput,
+                first_name: firstNameInput,
+                last_name: lastNameInput,
+                email: emailInput,
+                username: usernameInput,
+                password: passwordInput,
+            };
+
+            // Show/Hide password toggle
+            if (togglePassword) {
+                togglePassword.addEventListener('change', () => {
+                    passwordInput.type = togglePassword.checked ? 'text' : 'password';
+                });
+            }
+
+            function clearErrors() {
+                generalError.textContent = '';
+                generalError.classList.remove('active');
+                for (const key in fieldErrors) {
+                    if (fieldErrors[key]) {
+                        fieldErrors[key].textContent = '';
+                        fieldErrors[key].classList.remove('active');
+                    }
+                    if (inputs[key]) {
+                        inputs[key].classList.remove('has-error');
+                    }
+                }
+            }
+
+            function showFieldError(field, message) {
+                if (fieldErrors[field]) {
+                    fieldErrors[field].textContent = message;
+                    fieldErrors[field].classList.add('active');
+                }
+                if (inputs[field]) {
+                    inputs[field].classList.add('has-error');
+                }
+            }
+
+            // Map server messages to plain, friendly language
+            function mapErrorMessage(field, rawMsg) {
+                if (!rawMsg) return 'Please check this field and try again.';
+                const msg = String(rawMsg).toLowerCase();
+
+                if (field === 'username' && (msg.includes('already exists') || msg.includes('taken') || msg.includes('unique'))) {
+                    return 'This username is already taken. Please choose another one.';
+                }
+
+                if (field === 'password') {
+                    if (msg.includes('too similar') || msg.includes('similar')) {
+                        return 'Your password is too similar to your username. Please choose a different one.';
+                    }
+                    if (
+                        msg.includes('too short') || 
+                        msg.includes('too common') || 
+                        msg.includes('entirely numeric') || 
+                        msg.includes('numeric') || 
+                        msg.includes('all numbers') || 
+                        msg.includes('numbers') || 
+                        msg.includes('characters')
+                    ) {
+                        return 'This password is too easy to guess. Use at least 8 characters with some letters.';
+                    }
+                }
+
+                if (field === 'email' && (msg.includes('valid') || msg.includes('enter a correct') || msg.includes('invalid'))) {
+                    return 'Please enter a correct email address.';
+                }
+
+                return 'Please check this field and try again.';
+            }
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                clearErrors();
+
+                const shopName = shopNameInput.value.trim();
+                const firstName = firstNameInput.value.trim();
+                const lastName = lastNameInput.value.trim();
+                const email = emailInput.value.trim();
+                const username = usernameInput.value.trim();
+                const password = passwordInput.value;
+
+                let hasClientError = false;
+
+                if (!shopName) {
+                    showFieldError('shop_name', 'Please check this field and try again.');
+                    hasClientError = true;
+                }
+                if (!firstName) {
+                    showFieldError('first_name', 'Please check this field and try again.');
+                    hasClientError = true;
+                }
+                if (!email || !email.includes('@')) {
+                    showFieldError('email', 'Please enter a correct email address.');
+                    hasClientError = true;
+                }
+                if (!username) {
+                    showFieldError('username', 'Please check this field and try again.');
+                    hasClientError = true;
+                }
+                if (!password || password.length < 8) {
+                    showFieldError('password', 'This password is too easy to guess. Use at least 8 characters with some letters.');
+                    hasClientError = true;
+                }
+
+                if (hasClientError) return;
+
+                // Disable submit button while running
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Please wait...';
+
+                try {
+                    const registerPayload = {
+                        shop_name: shopName,
+                        first_name: firstName,
+                        last_name: lastName,
+                        email: email,
+                        username: username,
+                        password: password,
+                    };
+
+                    const response = await fetch('/api/v1/auth/register/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(registerPayload),
+                    });
+
+                    if (response.status === 201) {
+                        // Registration success -> Immediately log in
+                        try {
+                            const loginRes = await fetch('/api/v1/auth/login/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ username, password }),
+                            });
+
+                            if (loginRes.ok) {
+                                const tokenData = await loginRes.json();
+                                localStorage.setItem('access_token', tokenData.access);
+                                if (tokenData.refresh) {
+                                    localStorage.setItem('refresh_token', tokenData.refresh);
+                                }
+
+                                // Fetch profile & shop info
+                                try {
+                                    const meRes = await fetch('/api/v1/auth/me/', {
+                                        headers: {
+                                            'Authorization': `Bearer ${tokenData.access}`,
+                                        },
+                                    });
+                                    if (meRes.ok) {
+                                        const meData = await meRes.json();
+                                        if (meData.memberships && meData.memberships.length > 0 && meData.memberships[0].shop) {
+                                            localStorage.setItem('shop_id', meData.memberships[0].shop.id);
+                                            localStorage.setItem('shop_name', meData.memberships[0].shop.name);
+                                        } else {
+                                            localStorage.setItem('shop_name', shopName);
+                                        }
+                                    } else {
+                                        localStorage.setItem('shop_name', shopName);
+                                    }
+                                } catch (meErr) {
+                                    localStorage.setItem('shop_name', shopName);
+                                }
+
+                                // Redirect to dashboard
+                                window.location.href = '/';
+                                return;
+                            } else {
+                                // If automatic login had an issue, send to login page
+                                window.location.href = '/login/';
+                                return;
+                            }
+                        } catch (autoLoginErr) {
+                            window.location.href = '/login/';
+                            return;
+                        }
+                    }
+
+                    // Handle Server Error Responses (e.g. HTTP 400 validation errors)
+                    const errorData = await response.json().catch(() => null);
+                    if (errorData && typeof errorData === 'object') {
+                        let matchedAny = false;
+                        for (const field in errorData) {
+                            const rawList = errorData[field];
+                            const rawFirst = Array.isArray(rawList) ? rawList[0] : rawList;
+                            const friendlyMsg = mapErrorMessage(field, rawFirst);
+
+                            if (fieldErrors[field]) {
+                                showFieldError(field, friendlyMsg);
+                                matchedAny = true;
+                            }
+                        }
+
+                        if (!matchedAny) {
+                            const generalMsg = errorData.detail || (Array.isArray(errorData.non_field_errors) ? errorData.non_field_errors[0] : null) || 'Please check this field and try again.';
+                            generalError.textContent = generalMsg;
+                            generalError.classList.add('active');
+                        }
+                    } else {
+                        generalError.textContent = 'Please check your information and try again.';
+                        generalError.classList.add('active');
+                    }
+
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Create My Shop';
+
+                } catch (networkErr) {
+                    console.error('Signup network error:', networkErr);
+                    generalError.textContent = "Can't connect right now. Please check your internet and try again.";
+                    generalError.classList.add('active');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Create My Shop';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

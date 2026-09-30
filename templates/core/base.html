@@ -1,0 +1,522 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}Sentrix — AI Inventory Intelligence Platform{% endblock %}</title>
+    
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Chart.js CDN for visual analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- Stylesheet with Cache Buster -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=2.1">
+
+    <!-- Auth Protection: Redirect unauthenticated users immediately -->
+    <script>
+        (function() {
+            if (!localStorage.getItem('access_token')) {
+                window.location.href = '/login/';
+            }
+        })();
+    </script>
+</head>
+<body data-page="{{ active_page }}">
+
+    <div class="app-layout">
+        <!-- Desktop Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-badge">
+                    <span class="brand-icon">⚡</span>
+                </div>
+                <div class="brand-info">
+                    <div class="brand-title-wrap">
+                        <h2>Sentrix</h2>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="nav-group">
+                <span class="nav-label">Shop Menu</span>
+                
+                <a href="{% url 'core:dashboard' %}" class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+                    <div class="nav-item-left">
+                        <span class="nav-item-icon">📊</span>
+                        <span>Shop Overview</span>
+                    </div>
+                </a>
+
+                <a href="{% url 'core:products' %}" class="nav-item {% if active_page == 'products' %}active{% endif %}">
+                    <div class="nav-item-left">
+                        <span class="nav-item-icon">📦</span>
+                        <span>Products & Stock</span>
+                    </div>
+                    <span class="nav-item-count" id="sidebar-product-count">--</span>
+                </a>
+
+                <a href="{% url 'core:pos' %}" class="nav-item {% if active_page == 'pos' %}active{% endif %}">
+                    <div class="nav-item-left">
+                        <span class="nav-item-icon">💳</span>
+                        <span>Billing Counter</span>
+                    </div>
+                </a>
+
+                <a href="{% url 'core:orders' %}" class="nav-item {% if active_page == 'orders' %}active{% endif %}">
+                    <div class="nav-item-left">
+                        <span class="nav-item-icon">📋</span>
+                        <span>Supplier Orders</span>
+                    </div>
+                    <span class="nav-item-badge" id="sidebar-order-badge" style="display: none;">0</span>
+                </a>
+
+                <a href="{% url 'core:alerts' %}" class="nav-item {% if active_page == 'alerts' %}active{% endif %}">
+                    <div class="nav-item-left">
+                        <span class="nav-item-icon">🔔</span>
+                        <span>Stock Alerts</span>
+                    </div>
+                    <span class="nav-item-badge danger" id="sidebar-alert-badge" style="display: none;">0</span>
+                </a>
+
+                <a href="{% url 'core:chat' %}" class="nav-item {% if active_page == 'chat' %}active{% endif %}">
+                    <div class="nav-item-left">
+                        <span class="nav-item-icon">🤖</span>
+                        <span>Shop AI Assistant</span>
+                    </div>
+                </a>
+
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="shop-status-box">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <strong class="shop-name-display" style="font-size: 0.9rem; font-weight: 700;">{{ current_shop.name|default:"Sentrix Shop" }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-dim);">
+                        <span>Currency: <strong id="sidebar-currency-display" style="color: var(--text-main);">INR</strong></span>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="sidebar-logout-btn" onclick="App.logout()" style="width: 100%; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span>🚪</span>
+                    <span>Log Out</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Wrapper -->
+        <div class="main-wrapper">
+            <!-- Top Navigation Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <div class="mobile-menu-btn" onclick="App.toggleMobileSidebar()">☰</div>
+                    <div>
+                        <h1 class="view-title" id="current-view-title">{% block view_title %}Shop Overview{% endblock %}</h1>
+                        <p class="view-subtitle" id="current-view-subtitle">{% block view_subtitle %}Today's sales, stock value, and fast billing{% endblock %}</p>
+                    </div>
+                </div>
+
+                <div class="header-actions">
+                    <!-- Global Command Palette Trigger -->
+                    <button class="cmd-palette-trigger" onclick="App.openCommandPalette()" title="Press Ctrl+K or ⌘K">
+                        <span class="cmd-icon">🔍</span>
+                        <span class="cmd-label">Search</span>
+                        <kbd class="kbd-badge">Ctrl K</kbd>
+                    </button>
+
+                    <!-- Shop Switcher Dropdown -->
+                    <div class="shop-select-wrap">
+                        <label for="shop-switcher-select" class="shop-select-label">Shop:</label>
+                        <select id="shop-switcher-select" class="shop-dropdown" onchange="App.handleShopChange(this.value)">
+                            {% for s in shops %}
+                            <option value="{{ s.id }}" {% if s.id == current_shop.id %}selected{% endif %}>{{ s.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Audio Feedback Toggle -->
+                    <button class="icon-action-btn" id="sound-toggle-btn" title="Toggle Sound Feedback" onclick="App.toggleSound()">
+                        <span id="sound-icon">🔊</span>
+                    </button>
+
+                    <!-- Quick Barcode Scanner Trigger (Prominent) -->
+                    <button class="btn btn-secondary btn-header-action" onclick="App.openBarcodeModal()">
+                        📷 Scan Barcode
+                    </button>
+
+                    <!-- Quick Stock Movement Trigger -->
+                    <button class="btn btn-secondary btn-header-action" onclick="App.openQuickAdjustModal()">
+                        ⚡ Stock Update
+                    </button>
+
+                    <!-- POS Quick Sale Trigger (Large & Prominent) -->
+                    <a href="{% url 'core:pos' %}" class="btn btn-primary btn-header-primary">
+                        💳 Billing Counter <kbd class="kbd-badge-inline">F9</kbd>
+                    </a>
+                </div>
+            </header>
+
+            <!-- Dynamic Main Content -->
+            <main class="content-container">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+
+        <!-- Mobile Bottom App Bar -->
+        <nav class="mobile-bottom-bar">
+            <a href="{% url 'core:dashboard' %}" class="bottom-tab {% if active_page == 'dashboard' %}active{% endif %}">
+                <span class="bottom-tab-icon">📊</span>
+                <span>Overview</span>
+            </a>
+            <a href="{% url 'core:products' %}" class="bottom-tab {% if active_page == 'products' %}active{% endif %}">
+                <span class="bottom-tab-icon">📦</span>
+                <span>Stock</span>
+            </a>
+            <a href="{% url 'core:pos' %}" class="bottom-tab {% if active_page == 'pos' %}active{% endif %}">
+                <span class="bottom-tab-icon">💳</span>
+                <span>Billing</span>
+            </a>
+            <a href="{% url 'core:orders' %}" class="bottom-tab {% if active_page == 'orders' %}active{% endif %}">
+                <span class="bottom-tab-icon">📋</span>
+                <span>Orders</span>
+            </a>
+            <a href="{% url 'core:alerts' %}" class="bottom-tab {% if active_page == 'alerts' %}active{% endif %}">
+                <span class="bottom-tab-icon">🔔</span>
+                <span>Alerts</span>
+            </a>
+            <a href="{% url 'core:chat' %}" class="bottom-tab {% if active_page == 'chat' %}active{% endif %}">
+                <span class="bottom-tab-icon">🤖</span>
+                <span>AI</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- ========================================================
+         MODAL 1: ADD / EDIT PRODUCT
+         ======================================================== -->
+    <div class="modal-backdrop" id="product-modal">
+        <div class="modal-window">
+            <div class="modal-header">
+                <h3 id="product-modal-title" style="font-size: 1.15rem; font-weight: 800;">Add New Product</h3>
+                <button class="modal-close-btn" onclick="App.closeProductModal()">&times;</button>
+            </div>
+            <form id="product-modal-form" onsubmit="App.handleProductFormSubmit(event)">
+                <input type="hidden" id="modal-product-id">
+                <div class="modal-body">
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label>Product Name *</label>
+                            <input type="text" id="modal-product-name" class="form-control" placeholder="e.g. Tata Salt 1kg" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Item Code / SKU *</label>
+                            <input type="text" id="modal-product-sku" class="form-control" placeholder="e.g. SALT-1KG" required>
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label>Barcode (Optional)</label>
+                            <input type="text" id="modal-product-barcode" class="form-control" placeholder="e.g. 8901030826805">
+                        </div>
+                        <div class="form-group">
+                            <label>Category</label>
+                            <select id="modal-product-category" class="form-control">
+                                <option value="">Select Category</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-grid-3">
+                        <div class="form-group">
+                            <label>Selling Price (<span class="currency-label">INR</span>) *</label>
+                            <input type="number" id="modal-product-sale-price" class="form-control" step="0.01" min="0" placeholder="28.00" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Buying Cost (<span class="currency-label">INR</span>)</label>
+                            <input type="number" id="modal-product-cost-price" class="form-control" step="0.01" min="0" placeholder="22.00">
+                        </div>
+                        <div class="form-group" id="modal-initial-stock-wrap">
+                            <label>Starting Quantity</label>
+                            <input type="number" id="modal-product-stock" class="form-control" min="0" value="10">
+                        </div>
+                    </div>
+
+                    <div class="form-grid-3">
+                        <div class="form-group">
+                            <label>Low Stock Alert Level</label>
+                            <input type="number" id="modal-product-threshold" class="form-control" min="1" value="5">
+                        </div>
+                        <div class="form-group">
+                            <label>Reorder Quantity</label>
+                            <input type="number" id="modal-product-reorder-qty" class="form-control" min="1" value="20">
+                        </div>
+                        <div class="form-group">
+                            <label>Unit (e.g. pcs, kg, packs)</label>
+                            <input type="text" id="modal-product-unit" class="form-control" value="units">
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label>Primary Supplier / Vendor</label>
+                            <select id="modal-product-supplier" class="form-control">
+                                <option value="">Select Supplier</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Expiry Date (Optional)</label>
+                            <input type="date" id="modal-product-expiry" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="App.closeProductModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-glow" id="product-modal-submit-btn">Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================================
+         MODAL 2: QUICK STOCK UPDATE
+         ======================================================== -->
+    <div class="modal-backdrop" id="adjust-stock-modal">
+        <div class="modal-window">
+            <div class="modal-header">
+                <h3 style="font-size: 1.15rem; font-weight: 800;">⚡ Quick Stock Update</h3>
+                <button class="modal-close-btn" onclick="App.closeAdjustModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="adjust-header-card">
+                    <div>
+                        <strong id="adjust-product-title" style="font-size: 1rem; color: var(--text-main);">Product</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Stock balance update</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="font-size: 0.75rem; color: var(--text-dim);">Current Stock</span>
+                        <div style="font-size: 1.4rem; font-weight: 800; color: var(--accent-orange);" id="adjust-current-stock">--</div>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 14px;">
+                    <label>What happened?</label>
+                    <div class="type-selector-pills" id="adjust-pills">
+                        <div class="pill-option selected" data-type="sale_out" onclick="App.selectAdjustType('sale_out')">
+                            📉 Customer Sale
+                        </div>
+                        <div class="pill-option" data-type="purchase_in" onclick="App.selectAdjustType('purchase_in')">
+                            📈 Stock Added (Restock)
+                        </div>
+                        <div class="pill-option" data-type="damage_out" onclick="App.selectAdjustType('damage_out')">
+                            🛑 Damaged / Expired
+                        </div>
+                        <div class="pill-option" data-type="return_in" onclick="App.selectAdjustType('return_in')">
+                            ↩️ Customer Return
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Quantity</label>
+                    <input type="number" id="adjust-qty-input" class="form-control" value="1" min="1" step="1">
+                </div>
+
+                <div class="form-group">
+                    <label>Note / Reason (Optional)</label>
+                    <input type="text" id="adjust-note-input" class="form-control" placeholder="e.g. Counter sale, new carton opened, damaged packet...">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="App.closeAdjustModal()">Cancel</button>
+                <button class="btn btn-primary" style="flex: 2;" onclick="App.submitStockAdjustment()">Save Update</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================
+         MODAL 3: CREATE CUSTOM PURCHASE ORDER
+         ======================================================== -->
+    <div class="modal-backdrop" id="custom-po-modal">
+        <div class="modal-window modal-lg">
+            <div class="modal-header">
+                <h3 style="font-size: 1.15rem; font-weight: 800;">Draft Supplier Order</h3>
+                <button class="modal-close-btn" onclick="App.closeCustomPOModal()">&times;</button>
+            </div>
+            <form id="custom-po-form" onsubmit="App.handleCustomPOSubmit(event)">
+                <div class="modal-body">
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label>Select Supplier / Vendor *</label>
+                            <select id="po-supplier-select" class="form-control" required>
+                                <option value="">Choose Supplier</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Order Notes</label>
+                            <input type="text" id="po-notes-input" class="form-control" placeholder="e.g. Urgent restocking for weekend">
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <strong style="font-size: 0.9rem;">Order Items List</strong>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="App.addPOLineItemRow()">+ Add Item Row</button>
+                    </div>
+
+                    <div id="po-line-items-wrap">
+                        <!-- Line item rows inserted dynamically -->
+                    </div>
+
+                    <div class="po-total-preview" style="text-align: right; margin-top: 14px; font-size: 1.05rem; font-weight: 700;">
+                        Estimated Total Cost: <span id="po-estimated-total" style="color: var(--accent-orange);">INR 0.00</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="App.closeCustomPOModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-glow">Generate Supplier Order</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================================
+         MODAL 4: BARCODE SCANNER SIMULATOR
+         ======================================================== -->
+    <div class="modal-backdrop" id="barcode-modal">
+        <div class="modal-window">
+            <div class="modal-header">
+                <h3 style="font-size: 1.15rem; font-weight: 800;">📷 Barcode Scanner & Lookup</h3>
+                <button class="modal-close-btn" onclick="App.closeBarcodeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Camera Viewfinder with animated laser line -->
+                <div class="scanner-viewfinder">
+                    <div class="scanner-laser-line"></div>
+                    <div class="scanner-corner tl"></div>
+                    <div class="scanner-corner tr"></div>
+                    <div class="scanner-corner bl"></div>
+                    <div class="scanner-corner br"></div>
+                    <span class="scanner-text">ALIGN BARCODE WITHIN TARGET VIEWFINDER</span>
+                </div>
+
+                <!-- Quick Test Barcode Buttons -->
+                <div class="scanner-sample-chips">
+                    <span style="font-size: 0.75rem; color: var(--text-dim);">Sample Test Barcodes:</span>
+                    <button type="button" class="sample-chip" onclick="App.pasteSampleBarcode('8901030826805')">Tata Salt</button>
+                    <button type="button" class="sample-chip" onclick="App.pasteSampleBarcode('8901058852411')">Maggi</button>
+                    <button type="button" class="sample-chip" onclick="App.pasteSampleBarcode('8901719114201')">Parle-G</button>
+                    <button type="button" class="sample-chip" onclick="App.pasteSampleBarcode('8901491101831')">Amul Milk</button>
+                </div>
+
+                <div class="form-group" style="margin-top: 14px;">
+                    <label>Enter or Scan Barcode / SKU</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="barcode-input" class="form-control" placeholder="Scan or type barcode (e.g. 8901030826805)..." onkeydown="if(event.key==='Enter') App.handleBarcodeSearch()">
+                        <button class="btn btn-primary" onclick="App.handleBarcodeSearch()">Lookup</button>
+                    </div>
+                </div>
+
+                <!-- Result Card -->
+                <div id="barcode-result-card" style="display: none; margin-top: 14px;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================
+         MODAL 5: POS DIGITAL RECEIPT
+         ======================================================== -->
+    <div class="modal-backdrop" id="receipt-modal">
+        <div class="modal-window modal-sm">
+            <div class="modal-header">
+                <h3 style="font-size: 1.1rem; font-weight: 800;">Sale Receipt</h3>
+                <button class="modal-close-btn" onclick="App.closeReceiptModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="receipt-printable-area">
+                <!-- Populated dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="App.closeReceiptModal()">Close</button>
+                <button class="btn btn-primary" onclick="window.print()">🖨️ Print Receipt</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================
+         MODAL 6: GLOBAL COMMAND PALETTE (CTRL+K / CMD+K)
+         ======================================================== -->
+    <div class="modal-backdrop" id="cmd-palette-modal">
+        <div class="modal-window modal-cmd-palette">
+            <div class="cmd-palette-search-wrap">
+                <span class="cmd-search-icon">🔍</span>
+                <input type="text" id="cmd-palette-input" class="cmd-palette-input" placeholder="Type a product name, SKU, or jump to page..." autocomplete="off">
+                <kbd class="kbd-badge" style="cursor: pointer;" onclick="App.closeCommandPalette()">ESC</kbd>
+            </div>
+            <div class="cmd-palette-results" id="cmd-palette-results">
+                <!-- Populated dynamically -->
+            </div>
+            <div class="cmd-palette-footer">
+                <div class="cmd-footer-hints">
+                    <span><kbd class="kbd-micro">↑</kbd> <kbd class="kbd-micro">↓</kbd> Navigate</span>
+                    <span><kbd class="kbd-micro">↵</kbd> Select</span>
+                    <span><kbd class="kbd-micro">ESC</kbd> Close</span>
+                </div>
+                <div style="font-size: 0.72rem; color: var(--accent-emerald); font-weight: 600;">
+                    ⚡ Live Store Sync Active
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================
+         MODAL 7: UPLOAD PRODUCT LIST (CSV IMPORT)
+         ======================================================== -->
+    <div class="modal-backdrop" id="import-modal">
+        <div class="modal-window modal-sm" style="max-width: 460px;">
+            <div class="modal-header">
+                <h3 style="font-size: 1.15rem; font-weight: 800;">Upload a Product List</h3>
+                <button class="modal-close-btn" onclick="App.closeImportModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 16px; background: var(--bg-subtle); border: 1px solid var(--border-subtle); padding: 14px; border-radius: var(--radius-md);">
+                    <p style="font-size: 0.88rem; color: var(--text-main); margin-bottom: 10px; line-height: 1.45;">
+                        Fill in the sheet with your products, save it, and upload it below. Product name and Selling price are required. Everything else is optional.
+                    </p>
+                    <a href="/api/v1/inventory/products/import-template/" target="_blank" class="auth-link" style="font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px;">
+                        <span>📥</span> Download a sample sheet
+                    </a>
+                </div>
+
+                <!-- Error Box -->
+                <div id="import-error-box" class="auth-alert auth-alert-error" style="display: none; margin-bottom: 14px;"></div>
+
+                <!-- Results Box -->
+                <div id="import-result-box" style="display: none; margin-bottom: 14px;"></div>
+
+                <div class="form-group" style="margin-bottom: 8px;">
+                    <label for="import-file-input">Choose CSV Spreadsheet</label>
+                    <input type="file" id="import-file-input" accept=".csv,text/csv" class="form-control" style="min-height: 48px; padding: 11px 12px; cursor: pointer;">
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 10px;">
+                <button type="button" class="btn btn-secondary" style="flex: 1; min-height: 48px;" onclick="App.closeImportModal()">
+                    Cancel
+                </button>
+                <button type="button" id="import-submit-btn" class="btn btn-primary" style="flex: 1; min-height: 48px; font-weight: 700;" onclick="App.submitProductImport()">
+                    Upload
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Hub -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Application Script with Cache Buster -->
+    <script src="{% static 'js/app.js' %}?v=2.0"></script>
+</body>
+</html>

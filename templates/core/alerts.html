@@ -1,0 +1,32 @@
+{% extends "core/base.html" %}
+
+{% block title %}Stock Alerts & Warnings — Sentrix{% endblock %}
+{% block view_title %}Stock Alerts & Reminders{% endblock %}
+{% block view_subtitle %}Keep track of running low items, out-of-stock products, and expiry warnings{% endblock %}
+
+{% block content %}
+<section id="view-alerts" class="view-section active">
+
+    <!-- Alerts Toolbar -->
+    <div class="glass-panel" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <h2 style="font-size: 1.25rem; font-weight: 800;">Stock Alerts & Reminders</h2>
+            <p class="panel-sub">Immediate notifications when shop products fall below safety levels</p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-secondary" onclick="App.acknowledgeAllAlerts()">
+                ✓ Clear All Read Alerts
+            </button>
+            <button class="btn btn-primary btn-glow" onclick="App.autoDraftOrders()">
+                ⚡ Order Low Stock Items Now
+            </button>
+        </div>
+    </div>
+
+    <!-- Active Alerts List -->
+    <div id="alerts-list-container">
+        <!-- Populated dynamically by JavaScript -->
+    </div>
+
+</section>
+{% endblock %}

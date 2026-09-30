@@ -1,0 +1,160 @@
+{% extends "core/base.html" %}
+
+{% block title %}Shop Overview — Sentrix{% endblock %}
+{% block view_title %}Shop Overview{% endblock %}
+{% block view_subtitle %}Today's sales, stock value, and fast billing{% endblock %}
+
+{% block content %}
+<section id="view-dashboard" class="view-section active">
+    
+    <!-- Top Metrics Grid (Urgent Stock Alert Cards Are Larger & Prominent) -->
+    <div class="metrics-row">
+        <!-- Low Stock Items (Prominent Alert Card) -->
+        <div class="kpi-card kpi-warning kpi-priority">
+            <div class="kpi-top">
+                <span class="kpi-title">Low Stock Items</span>
+                <div class="kpi-icon">⚠️</div>
+            </div>
+            <div class="kpi-value" id="kpi-low-stock">--</div>
+            <div class="kpi-footer">
+                <span class="kpi-sub kpi-desc-highlight">Running low, order soon</span>
+            </div>
+        </div>
+
+        <!-- Out of Stock (Prominent Red Alert Card) -->
+        <div class="kpi-card kpi-danger kpi-priority">
+            <div class="kpi-top">
+                <span class="kpi-title">Out of Stock</span>
+                <div class="kpi-icon">🛑</div>
+            </div>
+            <div class="kpi-value" id="kpi-out-stock">--</div>
+            <div class="kpi-footer">
+                <span class="kpi-sub kpi-desc-danger">Out of stock</span>
+            </div>
+        </div>
+
+        <!-- Total Stock Value -->
+        <div class="kpi-card kpi-neutral">
+            <div class="kpi-top">
+                <span class="kpi-title">Total Stock Value</span>
+                <div class="kpi-icon">💰</div>
+            </div>
+            <div class="kpi-value" id="kpi-valuation">--</div>
+            <div class="kpi-footer">
+                <span class="kpi-sub">Total value of everything in stock</span>
+            </div>
+        </div>
+
+        <!-- Total Products -->
+        <div class="kpi-card kpi-neutral">
+            <div class="kpi-top">
+                <span class="kpi-title">Total Products</span>
+                <div class="kpi-icon">📦</div>
+            </div>
+            <div class="kpi-value" id="kpi-total-products">--</div>
+            <div class="kpi-footer">
+                <span class="kpi-sub">Number of different items you sell</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Visual Analytics Charts Row -->
+    <div class="charts-grid">
+        <div class="glass-panel chart-panel">
+            <div class="panel-header">
+                <div>
+                    <h3>Weekly Sales & Stock Replenishment</h3>
+                    <p class="panel-sub">Customer sales vs new incoming stock over the last 7 days</p>
+                </div>
+            </div>
+            <div class="chart-canvas-wrap">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+
+        <div class="glass-panel chart-panel">
+            <div class="panel-header">
+                <div>
+                    <h3>Stock Value by Category</h3>
+                    <p class="panel-sub">How your inventory money is spread across categories</p>
+                </div>
+                <a href="{% url 'core:products' %}" class="btn btn-secondary btn-xs" style="text-decoration: none;">View details</a>
+            </div>
+            <div class="chart-canvas-wrap doughnut-wrap">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Critical Stock Monitor & Quick Action -->
+    <div class="glass-panel">
+        <div class="panel-header">
+            <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <h3>Items Running Low (Restock Needed)</h3>
+                    <span class="pill pill-warning pulse" id="dashboard-critical-badge">Needs Order</span>
+                </div>
+                <p class="panel-sub">Items estimated to run out soon based on customer sales speed</p>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <a href="{% url 'core:products' %}" class="btn btn-secondary btn-sm">
+                    All Products &rarr;
+                </a>
+                <button class="btn btn-primary btn-sm" onclick="App.autoDraftOrders()">
+                    ⚡ Auto-Draft Orders for Low Items
+                </button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Product Name</th>
+                        <th>Category</th>
+                        <th>In Stock</th>
+                        <th>Selling Price</th>
+                        <th>Stock Health & Forecast</th>
+                        <th style="text-align: right;">Quick Action</th>
+                    </tr>
+                </thead>
+                <tbody id="dashboard-inventory-table-body">
+                    <tr><td colspan="6" class="table-loader">Loading items...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recent Activity Log -->
+    <div class="glass-panel">
+        <div class="panel-header">
+            <div>
+                <h3>Recent Shop Activity (Stock History)</h3>
+                <p class="panel-sub">Every sale, new stock arrival, and damaged item recorded automatically</p>
+            </div>
+            <div class="filter-chips-group">
+                <button class="filter-chip active" data-tx-filter="all" onclick="App.filterTransactions('all')">All</button>
+                <button class="filter-chip" data-tx-filter="sale_out" onclick="App.filterTransactions('sale_out')">Sales</button>
+                <button class="filter-chip" data-tx-filter="purchase_in" onclick="App.filterTransactions('purchase_in')">Stock Added</button>
+                <button class="filter-chip" data-tx-filter="damage_out" onclick="App.filterTransactions('damage_out')">Damaged</button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Product Name</th>
+                        <th>Action Type</th>
+                        <th>Quantity Changed</th>
+                        <th>Notes</th>
+                        <th style="text-align: right;">Date & Time</th>
+                    </tr>
+                </thead>
+                <tbody id="dashboard-transactions-body">
+                    <tr><td colspan="5" class="table-loader">Loading activity history...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</section>
+{% endblock %}

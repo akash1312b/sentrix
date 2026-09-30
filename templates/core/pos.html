@@ -1,0 +1,90 @@
+{% extends "core/base.html" %}
+
+{% block title %}Billing Counter — Sentrix{% endblock %}
+{% block view_title %}Billing Counter{% endblock %}
+{% block view_subtitle %}Fast sales: tap items or scan barcode to add to bill{% endblock %}
+
+{% block content %}
+<section id="view-pos" class="view-section active">
+    <div class="pos-layout">
+        <!-- Left Catalog Grid -->
+        <div class="pos-catalog-pane">
+            <div class="glass-panel pos-filter-bar">
+                <div class="search-input-wrap" style="flex: 1;">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="pos-search-input" class="search-input" placeholder="Search product or scan barcode to add..." oninput="App.filterPosProducts(this.value)">
+                </div>
+                <div class="pos-category-chips" id="pos-category-chips">
+                    <!-- Dynamic Category Chips -->
+                </div>
+            </div>
+
+            <!-- Product Cards Grid -->
+            <div class="pos-grid" id="pos-products-grid">
+                <!-- Populated dynamically by JS -->
+            </div>
+        </div>
+
+        <!-- Right Live Cart Panel -->
+        <div class="pos-cart-pane">
+            <div class="glass-panel pos-cart-card">
+                <div class="pos-cart-header">
+                    <div>
+                        <h3 style="font-size: 1.1rem; font-weight: 800;">Customer Bill / Cart</h3>
+                        <p class="panel-sub" id="pos-cart-items-count">0 items selected</p>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="App.clearCart()">Clear</button>
+                </div>
+
+                <!-- Customer Details -->
+                <div class="pos-customer-row">
+                    <input type="text" id="pos-customer-input" class="form-control form-control-sm" placeholder="Customer Name (Optional)" value="Counter Customer">
+                    <select id="pos-payment-select" class="form-control form-control-sm">
+                        <option value="Cash">💵 Cash</option>
+                        <option value="UPI">📱 UPI / QR</option>
+                        <option value="Card">💳 Card</option>
+                    </select>
+                </div>
+
+                <!-- Cart Items List -->
+                <div class="pos-cart-items-list" id="pos-cart-items-list">
+                    <div class="empty-cart-state">
+                        <div style="font-size: 2.5rem; margin-bottom: 8px;">🛒</div>
+                        <p>Cart is empty</p>
+                        <span style="font-size: 0.75rem; color: var(--text-dim);">Click products on the left or scan barcode to add</span>
+                    </div>
+                </div>
+
+                <!-- Cart Calculation Summary -->
+                <div class="pos-cart-summary">
+                    <div class="summary-row">
+                        <span>Subtotal</span>
+                        <strong id="pos-subtotal">INR 0.00</strong>
+                    </div>
+                    <div class="summary-row">
+                        <span>Discount</span>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <div class="discount-preset-chips">
+                                <button type="button" class="discount-chip" onclick="App.applyDiscountPreset(0)">0</button>
+                                <button type="button" class="discount-chip" onclick="App.applyDiscountPreset(5, true)">5%</button>
+                                <button type="button" class="discount-chip" onclick="App.applyDiscountPreset(10, true)">10%</button>
+                                <button type="button" class="discount-chip" onclick="App.applyDiscountPreset(50)">-50</button>
+                            </div>
+                            <input type="number" id="pos-discount-input" class="summary-discount-input" value="0" min="0" step="1" oninput="App.calculateCartTotal()">
+                        </div>
+                    </div>
+                    <div class="summary-divider"></div>
+                    <div class="summary-row total-row">
+                        <span>Total Due</span>
+                        <span class="total-amount" id="pos-total">INR 0.00</span>
+                    </div>
+
+                    <button class="btn btn-primary btn-checkout" id="pos-checkout-btn" onclick="App.submitPosCheckout()">
+                        ⚡ Complete Sale & Print Bill <kbd class="kbd-badge-inline" style="background: rgba(255,255,255,0.25);">F9</kbd>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
